@@ -1,7 +1,7 @@
-all: bin/server
+all: bin/audio-server
 
-bin/server: cmd/server.go
-	go build -o bin/server cmd/server.go
+bin/audio-server: cmd/audio-server/main.go
+	go build -o bin/audio-server cmd/audio-server/main.go
 
 clean:
-	rm -f bin/server
+	rm -f bin/audio-server
