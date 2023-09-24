@@ -9,7 +9,7 @@ func NewEchoWebServer() WebServer {
 	e := &webServerImpl{
 		Echo: echo.New(),
 	}
-	e.Logger.SetLevel(log.INFO)
+	e.setupLogging()
 	e.setupRoutes()
 	return e
 }
@@ -23,6 +23,7 @@ func (e *webServerImpl) setupRoutes() {
 	for _, route := range routes {
 		if route.GroupPath == "/" {
 			e.handleRootEndpoints(route)
+			continue
 		}
 		g := e.Group(route.GroupPath)
 		for _, middleware := range route.Middlewares {
@@ -31,13 +32,36 @@ func (e *webServerImpl) setupRoutes() {
 		for _, endpoint := range route.Endpoints {
 			switch endpoint.Method {
 			case MethodGet:
-				g.GET(endpoint.Path, endpoint.Handler)
+				g.GET(endpoint.Path, endpoint.Handler, endpoint.Middlewares...)
 			case MethodPost:
-				g.POST(endpoint.Path, endpoint.Handler)
+				g.POST(endpoint.Path, endpoint.Handler, endpoint.Middlewares...)
 			default:
 				panic("Method not supported... yet.")
 			}
 		}
+		for _, childRoute := range route.ChildRoutes {
+			e.handleRoute(childRoute, g)
+		}
+	}
+}
+
+func (e *webServerImpl) handleRoute(route EchoRoute, parentGroup *echo.Group) {
+	childGroup := parentGroup.Group(route.GroupPath)
+	for _, middleware := range route.Middlewares {
+		childGroup.Use(middleware)
+	}
+	for _, endpoint := range route.Endpoints {
+		switch endpoint.Method {
+		case MethodGet:
+			childGroup.GET(endpoint.Path, endpoint.Handler, endpoint.Middlewares...)
+		case MethodPost:
+			childGroup.POST(endpoint.Path, endpoint.Handler, endpoint.Middlewares...)
+		default:
+			panic("Method not supported... yet.")
+		}
+	}
+	for _, childRoute := range route.ChildRoutes {
+		e.handleRoute(childRoute, childGroup)
 	}
 }
 
@@ -55,6 +79,10 @@ func (e *webServerImpl) handleRootEndpoints(route EchoRoute) {
 			panic("Method not supported... yet.")
 		}
 	}
+}
+
+func (e *webServerImpl) setupLogging() {
+	e.Logger.SetLevel(log.INFO)
 }
 
 func (e *webServerImpl) Run() error {

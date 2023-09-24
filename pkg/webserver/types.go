@@ -12,12 +12,14 @@ type EchoRoute struct {
 	Endpoints   []EchoEndpoint
 	GroupPath   string
 	Middlewares []echo.MiddlewareFunc
+	ChildRoutes []EchoRoute
 }
 
 type EchoEndpoint struct {
-	Handler echo.HandlerFunc
-	Method  HttpMethod
-	Path    string
+	Handler     echo.HandlerFunc
+	Method      HttpMethod
+	Middlewares []echo.MiddlewareFunc
+	Path        string
 }
 
 // I'm suprised the standard library doesn't define such a type
