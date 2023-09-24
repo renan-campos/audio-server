@@ -21,6 +21,9 @@ type webServerImpl struct {
 func (e *webServerImpl) setupRoutes() {
 	routes := newEchoRoutes(e.Echo)
 	for _, route := range routes {
+		if route.GroupPath == "/" {
+			e.handleRootEndpoints(route)
+		}
 		g := e.Group(route.GroupPath)
 		for _, middleware := range route.Middlewares {
 			g.Use(middleware)
@@ -34,6 +37,22 @@ func (e *webServerImpl) setupRoutes() {
 			default:
 				panic("Method not supported... yet.")
 			}
+		}
+	}
+}
+
+func (e *webServerImpl) handleRootEndpoints(route EchoRoute) {
+	for _, middleware := range route.Middlewares {
+		e.Use(middleware)
+	}
+	for _, endpoint := range route.Endpoints {
+		switch endpoint.Method {
+		case MethodGet:
+			e.GET(endpoint.Path, endpoint.Handler)
+		case MethodPost:
+			e.POST(endpoint.Path, endpoint.Handler)
+		default:
+			panic("Method not supported... yet.")
 		}
 	}
 }
