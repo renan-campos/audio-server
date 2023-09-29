@@ -5,19 +5,21 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/renan-campos/audio-server/pkg/storage"
+
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 var v0 struct {
-	AdminRoutes   func() EchoRoute
-	RootEndpoints func() []EchoEndpoint
+	AdminRoutes   func(audioStorageService storage.AudioStorageService) EchoRoute
+	RootEndpoints func(audioStorageService storage.AudioStorageService) []EchoEndpoint
 } = struct {
-	AdminRoutes   func() EchoRoute
-	RootEndpoints func() []EchoEndpoint
+	AdminRoutes   func(audioStorageService storage.AudioStorageService) EchoRoute
+	RootEndpoints func(audioStorageService storage.AudioStorageService) []EchoEndpoint
 }{
-	AdminRoutes: func() EchoRoute {
+	AdminRoutes: func(audioStorageService storage.AudioStorageService) EchoRoute {
 		return EchoRoute{
 			GroupPath: "/admin",
 			Endpoints: []EchoEndpoint{
@@ -25,8 +27,11 @@ var v0 struct {
 					Path:   "/audio",
 					Method: MethodPost,
 					Handler: func(c echo.Context) error {
-						newUUID := uuid.New()
-						return c.String(http.StatusOK, fmt.Sprintf("Audio resource created: %q\n", newUUID.String()))
+						newUuid := uuid.New().String()
+						if err := audioStorageService.CreateEntry(newUuid); err != nil {
+							return err
+						}
+						return c.String(http.StatusOK, newUuid)
 					},
 				},
 				{
@@ -34,16 +39,27 @@ var v0 struct {
 					Method: MethodPost,
 					Handler: func(c echo.Context) error {
 						id := c.Param("id")
-						secureName := c.FormValue("name")
+						name := c.FormValue("name")
+						audioStorageService.UpdateMetadata(id, storage.AudioMetadata{
+							Name: name,
+						})
 						return c.String(http.StatusOK,
-							fmt.Sprintf("Uploaded metadata for %q:\n{\n\tname: %q\n}\n", id, secureName))
+							fmt.Sprintf("Uploaded metadata for %q:\n{\n\tname: %q\n}\n", id, name))
 					},
 				},
 				{
 					Path:   "/audio/:id/ogg",
 					Method: MethodPost,
 					Handler: func(c echo.Context) error {
+						// Get the uploaded file from the request
+						file, err := c.FormFile("audioFile")
+						if err != nil {
+							return err
+						}
 						id := c.Param("id")
+						if err := audioStorageService.UploadAudio(id, file); err != nil {
+							return err
+						}
 						return c.String(http.StatusOK, fmt.Sprintf("Uploaded ogg file for %q\n", id))
 					},
 				},
@@ -52,8 +68,8 @@ var v0 struct {
 				middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
 					// Be careful to use constant time comparison to prevent timing attacks
 					// TODO: Don't hardcode the password!
-					if subtle.ConstantTimeCompare([]byte(username), []byte("joe")) == 1 &&
-						subtle.ConstantTimeCompare([]byte(password), []byte("secret")) == 1 {
+					if subtle.ConstantTimeCompare([]byte(username), []byte("rcampos")) == 1 &&
+						subtle.ConstantTimeCompare([]byte(password), []byte("relax")) == 1 {
 						return true, nil
 					}
 					return false, nil
@@ -61,13 +77,17 @@ var v0 struct {
 			},
 		}
 	},
-	RootEndpoints: func() []EchoEndpoint {
+	RootEndpoints: func(audioStorageService storage.AudioStorageService) []EchoEndpoint {
 		return []EchoEndpoint{
 			{
 				Path:   "/audio",
 				Method: MethodGet,
 				Handler: func(c echo.Context) error {
-					return c.String(http.StatusOK, "List of audio metadata\n")
+					listOfAudioIds, err := audioStorageService.ListAudio()
+					if err != nil {
+						return err
+					}
+					return c.JSON(http.StatusOK, listOfAudioIds)
 				},
 			},
 			{
@@ -75,7 +95,11 @@ var v0 struct {
 				Method: MethodGet,
 				Handler: func(c echo.Context) error {
 					id := c.Param("id")
-					return c.String(http.StatusOK, fmt.Sprintf("List of audio %q metadata\n", id))
+					audioMetadata, err := audioStorageService.ListAudioMetadata(id)
+					if err != nil {
+						return err
+					}
+					return c.JSON(http.StatusOK, audioMetadata)
 				},
 			},
 			{
@@ -83,7 +107,19 @@ var v0 struct {
 				Method: MethodGet,
 				Handler: func(c echo.Context) error {
 					id := c.Param("id")
-					return c.String(http.StatusOK, fmt.Sprintf("ogg file of %q\n", id))
+					// Specify the path to your Ogg sound file
+					audioFilePath, err := audioStorageService.GetAudioFile(id)
+					if err != nil {
+						return err
+					}
+
+					// Set the appropriate headers for the HTTP response
+					c.Response().Header().Set(echo.HeaderContentType, "audio/ogg")
+					c.Response().Header().Set(echo.HeaderContentDisposition,
+						fmt.Sprintf("attachment; filename=\"%s.ogg\"", id))
+
+					// Serve the Ogg sound file as an HTTP response
+					return c.File(string(audioFilePath))
 				},
 			},
 		}
