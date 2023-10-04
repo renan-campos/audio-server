@@ -1,4 +1,4 @@
-class BackendClient {
+export class BackendClient {
   constructor() {
     this.root = window.location.href;
   }
@@ -12,31 +12,52 @@ class BackendClient {
   }
 
   async GetAudioOgg(id, handler) {
-    fetchAndHandle(this.root + "audio/" + id + "/ogg", handler);
+    fetchAndHandleBlob(this.root + "audio/" + id + "/ogg", handler);
   }
 
   async CreateAudio(auth, handler) {
     fetchAndHandleWithAuth(this.root + "admin/audio", auth, handler);
   }
 
-  async UploadAudioMetadata(auth, metadata, handler) {
+  async UploadAudioMetadata(id, auth, metadata, handler) {
     fetchAndHandleWithAuth(
-      this.root + "admin/audio" + id,
+      this.root + "admin/audio/" + id,
       auth,
       metadata,
       handler,
     );
   }
 
-  async UploadAudio(auth, audiofile, handler) {
+  async UploadAudio(id, auth, audioFile, handler) {
     const formData = new FormData();
     formData.append("audioFile", audioFile);
-    fetchAndHandleWithAuth(
-      this.root + "admin/audio" + id + "/ogg",
-      auth,
-      formData,
-      handler,
-    );
+  const base64Credentials = btoa(auth.username + ":" + auth.password);
+
+  fetch(
+    this.root + "admin/audio/" + id + "/ogg", {
+    method: "POST",
+    headers: {
+      Authorization: "Basic " + base64Credentials,
+    },
+    body: formData,
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.text(); // Change to .json() if the response is JSON
+    })
+    .then((data) => {
+      if (typeof handler === "function") {
+        handler(data);
+      } else {
+        console.log(data);
+      }
+    })
+    .catch((error) => {
+      console.error("There was a problem with the fetch operation:", error);
+      reject(error); // Reject the Promise if there's an error
+    });
   }
 }
 
@@ -47,7 +68,7 @@ function fetchAndHandle(route, handler) {
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
-      return response.text();
+      return response.json();
     })
     .then((data) => {
       if (typeof handler === "function") {
@@ -61,7 +82,27 @@ function fetchAndHandle(route, handler) {
     });
 }
 
-function fetchAndHandleWithAuth(route, auth, handler, body) {
+function fetchAndHandleBlob(route, handler) {
+  fetch(route)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.blob();
+    })
+    .then((blob) => {
+      if (typeof handler === "function") {
+        handler(blob);
+      } else {
+        console.log(blob);
+      }
+    })
+    .catch((error) => {
+      console.error("There was a problem with the fetch operation:", error);
+    });
+}
+
+function fetchAndHandleWithAuth(route, auth, body, handler) {
   const base64Credentials = btoa(auth.username + ":" + auth.password);
 
   fetch(route, {

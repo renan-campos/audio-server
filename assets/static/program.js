@@ -1,155 +1,198 @@
-root = window.location.href
+import {BackendClient} from './javascript/client.js'
 
-function listAudio() {
-    fetch(root + 'audio')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.text();
-      })
-      .then(data => {
-        document.writeln(data + "<br>");
-      })
-      .catch(error => {
-        console.error('There was a problem with the fetch operation:', error);
-      });
-}
+// Define a UI structure (could be an object or a class)
+class UI {
+    constructor(backendClient) {
+        // TODO move this sensitive, secretive data
+        this.auth = {username: "rcampos", password: "relax"}
+        this.backendClient = backendClient;
 
-function listAudio(id) {
-    fetch(root + 'audio/' + id)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.text();
-      })
-      .then(data => {
-        document.writeln(data + "<br>");
-      })
-      .catch(error => {
-        console.error('There was a problem with the fetch operation:', error);
-      });
-}
+        this.Player = document.getElementById('audioPlayer');
 
-function getAudioOgg(id) {
-    fetch(root + 'audio/' + id + '/ogg')
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.text();
-      })
-      .then(data => {
-        obj = data; document.writeln(data);
-      })
-      .catch(error => {
-        console.error('There was a problem with the fetch operation:', error);
-      });
-}
+        // List of guitar sessions
+        // - Has play button, enabled only if a sound file is present
+        // - Has trash button
+        // - Has editable name
+        // - Has button for uploading ogg file
+        this.SessionList = document.createElement('ul');
+        this.SessionList.id = 'SessionList';
 
-async function createAudioPromise(username, password) {
-  return new Promise((resolve, reject) => {
-    // Encode the username and password for Basic Authentication
-    const base64Credentials = btoa(username + ':' + password);
+        // Create a button element and configure it
+        this.CreateSessionButton = document.createElement('button');
+        this.CreateSessionButton.textContent = 'Create Session';
+        this.CreateSessionButton.id = 'CreateSessionButton';
 
-    fetch(root + 'admin/audio', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + base64Credentials,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.text(); // Change to .json() if the response is JSON
-      })
-      .then(data => {
-        // Handle the response data here
-        const audio_uuid = extractUuidFromText(data);
-        resolve(audio_uuid); // Resolve the Promise with the audio_uuid
-        console.log('new audio uuid: ', audio_uuid)
-      })
-      .catch(error => {
-        console.error('There was a problem with the fetch operation:', error);
-        reject(error); // Reject the Promise if there's an error
-      });
-  });
-}
+        // Add a click event listener to the button
+        this.CreateSessionButton.addEventListener('click', () => {
+            this.backendClient.CreateAudio(this.auth, (data) => {
+                console.log("Did it!");
+                console.log(data);
+            });
+            const newItem = document.createElement('li');
+            this.refreshSessionList();
+        });
 
-function createAudioMetadata(username, password, id) {
-    // Encode the username and password for Basic Authentication
-    const base64Credentials = btoa(username + ':' + password);
+        this.RefreshSessionListButton = document.createElement('button');
+        this.RefreshSessionListButton.textContent = 'Refresh List';
+        this.RefreshSessionListButton.id = 'RefreshSessionListButton';
 
-    var audio_uuid;
+        // Add a click event listener to the button
+        this.RefreshSessionListButton.addEventListener('click', () => {
+            this.clearSessionList();
+            this.populateSessionList();
+        });
 
-    fetch(root + 'admin/audio/' + id, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + base64Credentials,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
+        this.clearSessionList();
+        this.populateSessionList();
     }
-    return response.text(); // Change to .json() if the response is JSON
-  })
-  .then(data => {
-    // Handle the response data here
-    console.log(data);
-    audio_uuid = extractUuidFromText(data);
-      console.log(audio_uuid);
-  })
-  .catch(error => {
-    console.error('There was a problem with the fetch operation:', error);
-  });
-}
 
-function uploadAudioOgg(username, password, id) {
-    // Encode the username and password for Basic Authentication
-    const base64Credentials = btoa(username + ':' + password);
-
-    var audio_uuid;
-
-    fetch(root + 'admin/audio/' + id + '/ogg', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Basic ' + base64Credentials,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    })
-  .then(response => {
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
+    Render() {
+        // Append the list and button to the document
+        for (const element of [
+            this.Player,
+            this.CreateSessionButton,
+            this.RefreshSessionListButton,
+            this.SessionList, 
+        ]) {
+            document.body.appendChild(element)
+        }
     }
-    return response.text(); // Change to .json() if the response is JSON
-  })
-  .then(data => {
-    // Handle the response data here
-    console.log(data);
-    audio_uuid = extractUuidFromText(data);
-      console.log(audio_uuid);
-  })
-  .catch(error => {
-    console.error('There was a problem with the fetch operation:', error);
-  });
+
+    clearSessionList() {
+        var sessionList = document.getElementById('SessionList');
+        // Remove all child elements (list items)
+        while (this.SessionList.firstChild) {
+            this.SessionList.removeChild(this.SessionList.firstChild);
+        }
+    }
+
+    populateSessionList() {
+        this.backendClient.ListAudio((data) => {
+            data.Items.map((sessionId) => {
+                    this.backendClient.GetAudioMetadata(sessionId, (metadata) => {
+                    // Play button {
+                    const playButton = document.createElement('button');
+                    playButton.textContent = '▶️';
+                    playButton.className = 'edit-button';
+                    playButton.addEventListener('click', () => {
+                        console.log('Play button clicked for ' + sessionId);
+                        this.backendClient.GetAudioOgg(sessionId, (blob) => {
+                            //Create a blob URL and set it as the audio source
+                            const blobURL = URL.createObjectURL(blob);
+                            this.Player.type = "audio/ogg";
+                            this.Player.src = blobURL;
+
+                            // Play the audio
+                            this.Player.play();
+                        })
+
+                    });
+                    // } Play Button
+                    // Edit button {
+                    const editButton = document.createElement('button');
+                    editButton.textContent = '✏️';
+                    editButton.className = 'edit-button';
+                    editButton.addEventListener('click', () => {
+                        console.log('Edit button clicked for ' + sessionId);
+
+                        const sessionName = prompt("Enter session name:");
+                        console.log(sessionName);
+                        const formData = new URLSearchParams();
+                        formData.append('name', sessionName);
+                        console.log(formData.name)
+                        if (sessionName !== null && sessionName !== "") {
+                            this.backendClient.UploadAudioMetadata(
+                                sessionId,
+                                this.auth, 
+                                formData,
+                                (data) => { console.log(data); });
+                        }
+                        this.refreshSessionList();
+                    });
+                    // } Edit Button
+                    // Delete button {
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = '🗑️';
+                    deleteButton.className = 'delete-button';
+                    deleteButton.addEventListener('click', () => {
+                        console.log('[Unimplemented] Delete button clicked for ' + sessionId);
+
+                    });
+                    // } Delete Button
+                    // Cloud button {
+                    const cloudButton = document.createElement('button');
+                    cloudButton.textContent = '☁️';
+                    cloudButton.className = 'cloud-button';
+                    cloudButton.addEventListener('click', () => {
+                        console.log('[Unimplemented] Cloud button clicked for ' + sessionId);
+
+                    });
+                    // } Delete Button
+                    // Upload button {
+                    const uploadButton = document.createElement('button');
+                    uploadButton.textContent = '📂';
+                    uploadButton.className = 'upload-button';
+                    uploadButton.addEventListener('click', () => {
+                        console.log('[Unimplemented] Upload button clicked for ' + sessionId);
+
+                        // Create the file input element
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.id = 'fileInput';
+                        fileInput.style.display = 'none';
+
+                        // Attach an event listener to the file input element
+                        fileInput.addEventListener('change', (event) =>{
+                            const selectedFile = event.target.files[0];
+                            if (selectedFile) {
+                                // Handle the selected file here
+                                console.log('Selected file:', selectedFile.name);
+                                this.backendClient.UploadAudio(
+                                    sessionId, 
+                                    this.auth,
+                                    selectedFile);
+                            }
+                        });
+                        fileInput.click();
+                    });
+                    // } Upload Button
+                    // Session Div {
+                    const sessionDiv = document.createElement('div');
+                    sessionDiv.classList.add('session-div');
+                    sessionDiv.textContent = metadata.Name;
+                    // } Session Div
+                    // Admin Button Div {
+                    const adminDiv = document.createElement('div');
+                    adminDiv.classList.add('admin-div');
+                    adminDiv.appendChild(editButton);
+                    adminDiv.appendChild(uploadButton);
+                    // To add at a later point
+                    //adminDiv.appendChild(cloudButton);
+                    //adminDiv.appendChild(deleteButton);
+                    // } Admin Button Div 
+                    // User Button Div {
+                    const userDiv = document.createElement('div');
+                    userDiv.classList.add('user-div');
+                    userDiv.appendChild(playButton);
+                    // } User Button Div
+                    // Append the edit button to the list item
+                    const listItem = document.createElement('li');
+                    listItem.appendChild(sessionDiv);
+                    listItem.appendChild(adminDiv);
+                    listItem.appendChild(userDiv);
+                    this.SessionList.appendChild(listItem);
+                });
+            });
+        });
+    }
+
+    refreshSessionList() {
+        this.clearSessionList();
+        this.populateSessionList();
+    }
 }
 
-function extractUuidFromText(text) {
-  // Regular expression to match a UUID pattern
-  const uuidRegex = /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/;
+// Create an instance of the UI structure
+const ui = new UI(new BackendClient());
+ui.Render();
 
-  // Find the first match in the text
-  const match = text.match(uuidRegex);
-
-  // Check if a match was found
-  if (match && match.length > 0) {
-    return match[0]; // The first match is the UUID
-  } else {
-    return null; // No UUID found in the text
-  }
-}
