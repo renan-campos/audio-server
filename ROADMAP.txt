@@ -1,0 +1,25 @@
+- Actually using the service
+    I want to deploy the service in my house to upload and replay guitar sessions!
+
+- Feature request by the project manager (my lovely wife Lindsey <3):
+    As a person viewing this website...
+    After I pick the session I want to be played,
+    I want to see the name of the session.
+
+- Persistence
+    I need a system to store and retriece the data that is uploaded.
+
+- Security
+    Sessions should only be added through an administrator console, 
+    which is hidden from normal users.
+
+- Cloud
+    Being able to upload the sound files to a cloud. 
+    The server then returns the link to the cloud location.
+    Less load on the server
+
+- Hybrid Cloud
+    Being able to upload the sound files to different types of clouds.
+
+- Incorporating Generative AI
+   The front-end should generate images based on the session and display it by the front end. 
