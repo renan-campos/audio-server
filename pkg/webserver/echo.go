@@ -20,7 +20,7 @@ type webServerImpl struct {
 }
 
 func (e *webServerImpl) setupRoutes(audioStorageService storage.AudioStorageService) {
-	routes := newEchoRoutes(e.Echo, audioStorageService)
+	routes := newEchoRoutes(e.Echo)
 	for _, route := range routes {
 		if route.GroupPath == "/" {
 			e.handleRootEndpoints(route)
@@ -87,6 +87,6 @@ func (e *webServerImpl) setupLogging() {
 }
 
 func (e *webServerImpl) Run() error {
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start("127.0.0.1:1323"))
 	return nil
 }

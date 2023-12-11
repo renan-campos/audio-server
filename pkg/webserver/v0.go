@@ -1,15 +1,12 @@
 package webserver
 
 import (
-	"crypto/subtle"
 	"fmt"
 	"net/http"
 
 	"github.com/renan-campos/audio-server/pkg/storage"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 var v0 struct {
@@ -20,62 +17,7 @@ var v0 struct {
 	RootEndpoints func(audioStorageService storage.AudioStorageService) []EchoEndpoint
 }{
 	AdminRoutes: func(audioStorageService storage.AudioStorageService) EchoRoute {
-		return EchoRoute{
-			GroupPath: "/admin",
-			Endpoints: []EchoEndpoint{
-				{
-					Path:   "/audio",
-					Method: MethodPost,
-					Handler: func(c echo.Context) error {
-						newUuid := uuid.New().String()
-						if err := audioStorageService.CreateEntry(newUuid); err != nil {
-							return err
-						}
-						return c.String(http.StatusOK, newUuid)
-					},
-				},
-				{
-					Path:   "/audio/:id",
-					Method: MethodPost,
-					Handler: func(c echo.Context) error {
-						id := c.Param("id")
-						name := c.FormValue("name")
-						audioStorageService.UpdateMetadata(id, storage.AudioMetadata{
-							Name: name,
-						})
-						return c.String(http.StatusOK,
-							fmt.Sprintf("Uploaded metadata for %q:\n{\n\tname: %q\n}\n", id, name))
-					},
-				},
-				{
-					Path:   "/audio/:id/ogg",
-					Method: MethodPost,
-					Handler: func(c echo.Context) error {
-						// Get the uploaded file from the request
-						file, err := c.FormFile("audioFile")
-						if err != nil {
-							return err
-						}
-						id := c.Param("id")
-						if err := audioStorageService.UploadAudio(id, file); err != nil {
-							return err
-						}
-						return c.String(http.StatusOK, fmt.Sprintf("Uploaded ogg file for %q\n", id))
-					},
-				},
-			},
-			Middlewares: []echo.MiddlewareFunc{
-				middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
-					// Be careful to use constant time comparison to prevent timing attacks
-					// TODO: Don't hardcode the password!
-					if subtle.ConstantTimeCompare([]byte(username), []byte("rcampos")) == 1 &&
-						subtle.ConstantTimeCompare([]byte(password), []byte("relax")) == 1 {
-						return true, nil
-					}
-					return false, nil
-				}),
-			},
-		}
+		return EchoRoute{}
 	},
 	RootEndpoints: func(audioStorageService storage.AudioStorageService) []EchoEndpoint {
 		return []EchoEndpoint{
