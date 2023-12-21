@@ -1,22 +1,37 @@
 package webserver
 
 import (
+	"fmt"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"github.com/renan-campos/audio-server/pkg/storage"
 )
 
-func NewEchoWebServer(audioStorageService storage.AudioStorageService) WebServer {
+type Services struct {
+	AudioStorage storage.AudioStorageService
+}
+
+type Parameters struct {
+	Port int
+}
+
+func NewEchoWebServer(
+	params Parameters,
+	services Services,
+) WebServer {
 	e := &webServerImpl{
 		Echo: echo.New(),
+		port: params.Port,
 	}
 	e.setupLogging()
-	e.setupRoutes(audioStorageService)
+	e.setupRoutes(services.AudioStorage)
 	return e
 }
 
 type webServerImpl struct {
 	*echo.Echo
+	port int
 }
 
 func (e *webServerImpl) setupRoutes(audioStorageService storage.AudioStorageService) {
@@ -87,6 +102,6 @@ func (e *webServerImpl) setupLogging() {
 }
 
 func (e *webServerImpl) Run() error {
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(fmt.Sprintf("127.0.0.1:%d", e.port)))
 	return nil
 }
