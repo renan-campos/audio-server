@@ -18,12 +18,10 @@ class UI {
         this.SessionList.id = 'SessionList';
 
         // Create a button element and configure it
-        this.CreateSessionButton = document.createElement('button');
-        this.CreateSessionButton.textContent = 'Create Session';
-        this.CreateSessionButton.id = 'CreateSessionButton';
-
-        // Add a click event listener to the button
-        this.CreateSessionButton.addEventListener('click', () => {
+        this.CreateSessionButton = createButton(
+            'CreateSessionButton',
+            'Create Session',
+            () => {
             this.backendClient.CreateAudio(this.auth, (data) => {
                 console.log("Did it!");
                 console.log(data);
@@ -31,13 +29,10 @@ class UI {
             const newItem = document.createElement('li');
             this.refreshSessionList();
         });
-
-        this.RefreshSessionListButton = document.createElement('button');
-        this.RefreshSessionListButton.textContent = 'Refresh List';
-        this.RefreshSessionListButton.id = 'RefreshSessionListButton';
-
-        // Add a click event listener to the button
-        this.RefreshSessionListButton.addEventListener('click', () => {
+        this.RefreshSessionListButton = createButton(
+            'RefreshSessionListButton',
+            'Refresh List',
+            () => {
             this.clearSessionList();
             this.populateSessionList();
         });
@@ -196,3 +191,11 @@ class UI {
 const ui = new UI(new BackendClient());
 ui.Render();
 
+
+function createButton(id, textContent, clickHandler) {
+    var button = document.createElement('button');
+    button.id = id
+    button.textContent = textContent;
+    button.addEventListener('click', clickHandler)
+    return button
+}
