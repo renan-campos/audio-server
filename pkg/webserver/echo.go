@@ -13,7 +13,8 @@ type Services struct {
 }
 
 type Parameters struct {
-	Port int
+	ListenAddr string
+	Port       int
 }
 
 func NewEchoWebServer(
@@ -21,8 +22,9 @@ func NewEchoWebServer(
 	services Services,
 ) WebServer {
 	e := &webServerImpl{
-		Echo: echo.New(),
-		port: params.Port,
+		Echo:       echo.New(),
+		port:       params.Port,
+		listenAddr: params.ListenAddr,
 	}
 	e.setupLogging()
 	e.setupRoutes(services.AudioStorage)
@@ -31,7 +33,8 @@ func NewEchoWebServer(
 
 type webServerImpl struct {
 	*echo.Echo
-	port int
+	port       int
+	listenAddr string
 }
 
 func (e *webServerImpl) setupRoutes(audioStorageService storage.AudioStorageService) {
@@ -102,6 +105,6 @@ func (e *webServerImpl) setupLogging() {
 }
 
 func (e *webServerImpl) Run() error {
-	e.Logger.Fatal(e.Start(fmt.Sprintf("127.0.0.1:%d", e.port)))
+	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%d", e.listenAddr, e.port)))
 	return nil
 }

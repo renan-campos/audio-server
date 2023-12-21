@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	listenAddr := flag.String("listen", "127.0.0.1", "The address to run the server on")
 	port := flag.Int("port", 1323, "Port audio server will run on")
 	runMetrics := flag.Bool("run-metrics", false, "Run the metrics server")
 
@@ -20,7 +21,7 @@ func main() {
 	}
 	audioStorageService := storage.NewMemAudioStorageService()
 	webserver := webserver.NewEchoWebServer(
-		webserver.Parameters{Port: *port},
+		webserver.Parameters{Port: *port, ListenAddr: *listenAddr},
 		webserver.Services{AudioStorage: audioStorageService},
 	)
 	webserver.Run()
