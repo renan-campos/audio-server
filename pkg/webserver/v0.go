@@ -54,10 +54,13 @@ var v0 struct {
 						// Get the uploaded file from the request
 						file, err := c.FormFile("audioFile")
 						if err != nil {
+							fmt.Printf("error getting uploaded file: %v\n", err)
 							return err
 						}
 						id := c.Param("id")
 						if err := audioStorageService.UploadAudio(id, file); err != nil {
+							fmt.Printf("error uploading audio: %v\n", err)
+							fmt.Println(err)
 							return err
 						}
 						return c.String(http.StatusOK, fmt.Sprintf("Uploaded ogg file for %q\n", id))
