@@ -1,27 +1,28 @@
 export class BackendClient {
   constructor() {
     this.root = window.location.href;
+    this.version = "v0/"
   }
 
   async ListAudio(handler) {
-    fetchAndHandle(this.root + "audio", handler);
+    fetchAndHandle(this.root + this.version + "audio", handler);
   }
 
   async GetAudioMetadata(id, handler) {
-    fetchAndHandle(this.root + "audio/" + id, handler);
+    fetchAndHandle(this.root + this.version + "audio/" + id, handler);
   }
 
   async GetAudioOgg(id, handler) {
-    fetchAndHandleBlob(this.root + "audio/" + id + "/ogg", handler);
+    fetchAndHandleBlob(this.root + this.version + "audio/" + id + "/ogg", handler);
   }
 
   async CreateAudio(auth, handler) {
-    fetchAndHandleWithAuth(this.root + "admin/audio", auth, handler);
+    fetchAndHandleWithAuth(this.root + this.version + "admin/audio", auth, handler);
   }
 
   async UploadAudioMetadata(id, auth, metadata, handler) {
     fetchAndHandleWithAuth(
-      this.root + "admin/audio/" + id,
+      this.root + this.version + "admin/audio/" + id,
       auth,
       metadata,
       handler,
@@ -34,7 +35,7 @@ export class BackendClient {
   const base64Credentials = btoa(auth.username + ":" + auth.password);
 
   fetch(
-    this.root + "admin/audio/" + id + "/ogg", {
+    this.root + this.version + "admin/audio/" + id + "/ogg", {
     method: "POST",
     headers: {
       Authorization: "Basic " + base64Credentials,

@@ -10,11 +10,15 @@ import (
 func newEchoRoutes(e *echo.Echo, audioStorageService storage.AudioStorageService) []EchoRoute {
 	return []EchoRoute{
 		{
-			GroupPath: "/v0",
-			Endpoints: v0.RootEndpoints(audioStorageService),
+			GroupPath: "/",
 			Middlewares: []echo.MiddlewareFunc{
 				middleware.Static(staticFileLocation),
 			},
+		},
+		{
+			GroupPath:   "/v0",
+			Endpoints:   v0.RootEndpoints(audioStorageService),
+			Middlewares: []echo.MiddlewareFunc{},
 			ChildRoutes: []EchoRoute{
 				v0.AdminRoutes(audioStorageService),
 			},

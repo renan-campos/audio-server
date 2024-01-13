@@ -128,7 +128,7 @@ class UI {
                     uploadButton.textContent = '📂';
                     uploadButton.className = 'upload-button';
                     uploadButton.addEventListener('click', () => {
-                        console.log('[Unimplemented] Upload button clicked for ' + sessionId);
+                        console.log('Upload button clicked for ' + sessionId);
 
                         // Create the file input element
                         const fileInput = document.createElement('input');
