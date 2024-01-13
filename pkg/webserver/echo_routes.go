@@ -16,9 +16,11 @@ func newEchoRoutes(e *echo.Echo, audioStorageService storage.AudioStorageService
 			},
 		},
 		{
-			GroupPath:   "/v0",
-			Endpoints:   v0.RootEndpoints(audioStorageService),
-			Middlewares: []echo.MiddlewareFunc{},
+			GroupPath: "/v0",
+			Endpoints: v0.RootEndpoints(audioStorageService),
+			Middlewares: []echo.MiddlewareFunc{
+				middleware.Logger(),
+			},
 			ChildRoutes: []EchoRoute{
 				v0.AdminRoutes(audioStorageService),
 			},

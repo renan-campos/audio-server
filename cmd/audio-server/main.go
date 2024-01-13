@@ -19,7 +19,8 @@ func main() {
 		metricsServer := metrics.NewMetricsServer()
 		go metricsServer.Run()
 	}
-	audioStorageService := storage.NewMemAudioStorageService()
+	//audioStorageService := storage.NewMemAudioStorageService()
+	audioStorageService := storage.NewEtcdAudioStorageService()
 	webserver := webserver.NewEchoWebServer(
 		webserver.Parameters{Port: *port, ListenAddr: *listenAddr},
 		webserver.Services{AudioStorage: audioStorageService},
