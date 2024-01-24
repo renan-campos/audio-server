@@ -1,12 +1,25 @@
 <html>
     <head>
+        <style>
+            #audioPlayer {
+                position: sticky;
+                top: 0%;
+                width: 100%
+            }
+            #SessionList {
+                max-height: 50%; /* Adjust the height as needed */
+                width: 15%;
+                overflow-y: auto;
+                list-style: none;
+                padding: 0;
+            }
+        </style>
         <link href="favicon.ico" rel="icon" type="image/x-icon">
     </head>
     <body>
         <pre>
             <script type="module" src="program.js"></script>
         </pre> 
-        <p>Audio Server</p>
         <audio id="audioPlayer" controls>
             <source src="" type="audio/ogg">
         </audio>
