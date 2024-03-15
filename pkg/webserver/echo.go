@@ -9,7 +9,7 @@ import (
 )
 
 type Services struct {
-	AudioStorage storage.AudioStorageService
+	Storage storage.MovieStorageService
 }
 
 type Parameters struct {
@@ -27,7 +27,7 @@ func NewEchoWebServer(
 		listenAddr: params.ListenAddr,
 	}
 	e.setupLogging()
-	e.setupRoutes(services.AudioStorage)
+	e.setupRoutes(services.Storage)
 	return e
 }
 
@@ -37,8 +37,8 @@ type webServerImpl struct {
 	listenAddr string
 }
 
-func (e *webServerImpl) setupRoutes(audioStorageService storage.AudioStorageService) {
-	routes := newEchoRoutes(e.Echo, audioStorageService)
+func (e *webServerImpl) setupRoutes(movieStorageService storage.MovieStorageService) {
+	routes := newEchoRoutes(e.Echo, movieStorageService)
 	for _, route := range routes {
 		if route.GroupPath == "/" {
 			e.handleRootEndpoints(route)

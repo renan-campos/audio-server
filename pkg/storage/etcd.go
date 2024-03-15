@@ -3,17 +3,13 @@ package storage
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
-	"mime/multipart"
-	"os"
 	"strings"
 	"time"
 
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-func NewEtcdAudioStorageService() AudioStorageService {
+func NewEtcdMovieStorageService() MovieStorageService {
 	etcdClient, err := clientv3.New(clientv3.Config{
 		Endpoints:   []string{"localhost:2379", "localhost:22379", "localhost:32379"},
 		DialTimeout: 5 * time.Second,
@@ -30,79 +26,28 @@ type etcdStorageService struct {
 	client *clientv3.Client
 }
 
-func (s *etcdStorageService) CreateEntry(uuid string) error {
-	var metadata AudioMetadata
-	_, err := s.client.KV.Put(s.newContext(), "audio."+uuid, s.marshalData(metadata))
+func (s *etcdStorageService) CreateEntry(movieName string) error {
+	metadata := MovieData{
+		Name: movieName,
+	}
+	_, err := s.client.KV.Put(s.newContext(), "movie."+movieName, s.marshalData(metadata))
 	return err
 }
 
-func (s *etcdStorageService) UpdateMetadata(id string, metadata AudioMetadata) error {
-	_, err := s.client.KV.Put(s.newContext(), "audio."+id, s.marshalData(metadata))
-	return err
-}
-
-func (s *etcdStorageService) UploadAudio(id string, file *multipart.FileHeader) error {
-	// Open the file for writing
-	src, err := file.Open()
+func (s *etcdStorageService) ListMovies() (MovieList, error) {
+	resp, err := s.client.KV.Get(s.newContext(), "movie.", clientv3.WithPrefix())
 	if err != nil {
-		return err
-	}
-	defer src.Close()
-
-	// Specify the path where you want to save the uploaded file
-	dstPath := fmt.Sprintf("%s/%s.ogg", uploadDirectory, id) // Change the path as needed
-
-	// Create or open the destination file
-	dst, err := os.Create(dstPath)
-	if err != nil {
-		return err
-	}
-	defer dst.Close()
-
-	// Copy the uploaded file data to the destination file
-	if _, err = io.Copy(dst, src); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *etcdStorageService) ListAudio() (AudioIdList, error) {
-	audioIdList := AudioIdList{
-		Items: []string{},
-		Total: 0,
-	}
-	resp, err := s.client.KV.Get(s.newContext(), "audio.", clientv3.WithPrefix())
-	if err != nil {
-		return audioIdList, err
+		return MovieList{}, err
 	}
 
-	var audioIds []string = []string{}
-	for _, audioElement := range resp.Kvs {
-		audioIds = append(audioIds, s.pruneKey(string(audioElement.Key)))
+	var movies []string = []string{}
+	for _, movieElement := range resp.Kvs {
+		movies = append(movies, s.pruneKey(string(movieElement.Key)))
 	}
-	return AudioIdList{
-		Total: len(audioIds),
-		Items: audioIds,
+	return MovieList{
+		Total: len(movies),
+		Items: movies,
 	}, nil
-}
-
-func (s *etcdStorageService) ListAudioMetadata(id string) (AudioMetadata, error) {
-	resp, err := s.client.KV.Get(s.newContext(), "audio."+id)
-	if err != nil {
-		return AudioMetadata{}, err
-	}
-	if len(resp.Kvs) < 1 {
-		return AudioMetadata{}, fmt.Errorf("Expected at least one element")
-	}
-	return s.unmarshalData(resp.Kvs[0].Value)
-}
-
-func (s *etcdStorageService) GetAudioFile(id string) (AudioFilePath, error) {
-	_, err := s.ListAudioMetadata(id)
-	if err != nil {
-		return "", fmt.Errorf("%q not found", id)
-	}
-	return AudioFilePath(fmt.Sprintf("%s/%s.ogg", uploadDirectory, id)), nil
 }
 
 func (s *etcdStorageService) newContext() context.Context {
@@ -110,14 +55,14 @@ func (s *etcdStorageService) newContext() context.Context {
 	return ctx
 }
 
-func (s *etcdStorageService) unmarshalData(data []byte) (AudioMetadata, error) {
-	var audioMetadata AudioMetadata
-	err := json.Unmarshal(data, &audioMetadata)
-	return audioMetadata, err
+func (s *etcdStorageService) unmarshalData(data []byte) (MovieData, error) {
+	var movieData MovieData
+	err := json.Unmarshal(data, &movieData)
+	return movieData, err
 }
 
-func (s *etcdStorageService) marshalData(metadata AudioMetadata) string {
-	data, err := json.Marshal(metadata)
+func (s *etcdStorageService) marshalData(movieData MovieData) string {
+	data, err := json.Marshal(movieData)
 	if err != nil {
 		panic(err)
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 )
 
-func newEchoRoutes(e *echo.Echo, audioStorageService storage.AudioStorageService) []EchoRoute {
+func newEchoRoutes(e *echo.Echo, movieStorageService storage.MovieStorageService) []EchoRoute {
 	return []EchoRoute{
 		{
 			GroupPath: "/",
@@ -17,13 +17,11 @@ func newEchoRoutes(e *echo.Echo, audioStorageService storage.AudioStorageService
 		},
 		{
 			GroupPath: "/v0",
-			Endpoints: v0.RootEndpoints(audioStorageService),
+			Endpoints: v0.RootEndpoints(movieStorageService),
 			Middlewares: []echo.MiddlewareFunc{
 				middleware.Logger(),
 			},
-			ChildRoutes: []EchoRoute{
-				v0.AdminRoutes(audioStorageService),
-			},
+			ChildRoutes: []EchoRoute{},
 		},
 	}
 }
