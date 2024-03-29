@@ -36,6 +36,13 @@ class UI {
             this.clearSessionList();
             this.populateSessionList();
         });
+        // Create a button element and configure it
+        this.LogoutButton = createButton(
+            'LogoutButton',
+            'Logout',
+            () => {
+            deleteCookie('jwt'); // Delete the 'jwt' cookie
+        });
 
         this.clearSessionList();
         this.populateSessionList();
@@ -47,6 +54,7 @@ class UI {
             this.Player,
             this.CreateSessionButton,
             this.RefreshSessionListButton,
+            this.LogoutButton,
             this.SessionList, 
         ]) {
             document.body.appendChild(element)
@@ -198,4 +206,8 @@ function createButton(id, textContent, clickHandler) {
     button.textContent = textContent;
     button.addEventListener('click', clickHandler)
     return button
+}
+
+function deleteCookie(name) {
+    document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 }

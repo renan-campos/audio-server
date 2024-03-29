@@ -1,15 +1,21 @@
 package webserver
 
 import (
-	"crypto/subtle"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"time"
 
+	"github.com/renan-campos/audio-server/pkg/auth"
 	"github.com/renan-campos/audio-server/pkg/storage"
+	"gopkg.in/square/go-jose.v2"
+	"gopkg.in/square/go-jose.v2/jwt"
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 )
 
 var v0 struct {
@@ -68,15 +74,18 @@ var v0 struct {
 				},
 			},
 			Middlewares: []echo.MiddlewareFunc{
-				middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
-					// Be careful to use constant time comparison to prevent timing attacks
-					// TODO: Don't hardcode the password!
-					if subtle.ConstantTimeCompare([]byte(username), []byte("rcampos")) == 1 &&
-						subtle.ConstantTimeCompare([]byte(password), []byte("relax")) == 1 {
-						return true, nil
-					}
-					return false, nil
-				}),
+				/*
+					middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
+						// Be careful to use constant time comparison to prevent timing attacks
+						// TODO: Don't hardcode the password!
+						if subtle.ConstantTimeCompare([]byte(username), []byte("rcampos")) == 1 &&
+							subtle.ConstantTimeCompare([]byte(password), []byte("relax")) == 1 {
+							return true, nil
+						}
+						return false, nil
+					}),
+				*/
+				auth.JwtAuth("auth.rcampos.net"),
 			},
 		}
 	},
@@ -123,6 +132,72 @@ var v0 struct {
 
 					// Serve the Ogg sound file as an HTTP response
 					return c.File(string(audioFilePath))
+				},
+			},
+			{
+				Path:   "/token",
+				Method: MethodPost,
+				Handler: func(c echo.Context) error {
+					otp, err := io.ReadAll(c.Request().Body)
+					if err != nil {
+						return err
+					}
+					resp, err := http.Post(
+						// Todo: auth endpoint
+						fmt.Sprintf("%s/token", "http://auth.rcampos.net"),
+						"application/json",
+						bytes.NewBuffer(otp))
+					if err != nil {
+						return err
+					}
+
+					/* jwt logic { */
+					defer resp.Body.Close()
+
+					// Read response body
+					rawJwt, err := io.ReadAll(resp.Body)
+					if err != nil {
+						return fmt.Errorf("Failed to read JWT", err)
+					}
+					webToken, err := jwt.ParseSigned(string(rawJwt))
+					if err != nil {
+						return fmt.Errorf("Failed to parse JWT", err)
+					}
+					var verifiedClaims jwt.Claims
+					// Todo auth endpoint
+					resp, err = http.Get("http://auth.rcampos.net/jwks")
+					if err != nil {
+						fmt.Errorf("Http request failed:", err)
+					}
+					defer resp.Body.Close()
+
+					var jwks jose.JSONWebKeySet
+					marshalledJwks, err := io.ReadAll(resp.Body)
+					if err != nil {
+						fmt.Errorf("Failed to read GET response body")
+					}
+					if err := json.Unmarshal(marshalledJwks, &jwks); err != nil {
+						fmt.Errorf("Failed to unmarshall jwks")
+					}
+
+					err = webToken.Claims(jwks.Keys[0], &verifiedClaims)
+					if err != nil {
+						log.Printf("Failed to verify jwt: %v", err)
+						return err
+					}
+					log.Println("JWT verified!")
+					err = verifiedClaims.Validate(jwt.Expected{
+						Issuer: "Authentication-Server",
+						Time:   time.Now(),
+					})
+					if err != nil {
+						fmt.Errorf("Failed to validate claims:", err)
+					}
+					log.Println("Claims validated sucessful.\n")
+
+					/* jwt logic } */
+					_, err = c.Response().Write(rawJwt)
+					return err
 				},
 			},
 		}

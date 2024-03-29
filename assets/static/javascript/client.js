@@ -1,7 +1,7 @@
 export class BackendClient {
   constructor() {
-    this.root = window.location.href;
-    this.version = "v0/"
+    this.root = window.location.origin;
+    this.version = "/v0/"
   }
 
   async ListAudio(handler) {
@@ -103,13 +103,30 @@ function fetchAndHandleBlob(route, handler) {
     });
 }
 
+// Function to retrieve a cookie by name
+function getCookie(name) {
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [cookieName, cookieValue] = cookie.trim().split('=');
+    if (cookieName === name) {
+      return decodeURIComponent(cookieValue);
+    }
+  }
+  return null;
+}
+
 function fetchAndHandleWithAuth(route, auth, body, handler) {
-  const base64Credentials = btoa(auth.username + ":" + auth.password);
+  const jwt = getCookie('jwt');
+  if (!jwt) {
+    console.log('JWT token not found. Redirecting to authentication endpoint...');
+    // Token not found, redirect to authentication endpoint
+    window.location.href = '/auth?redirect=' + encodeURIComponent(window.location.href); 
+  }
 
   fetch(route, {
     method: "POST",
     headers: {
-      Authorization: "Basic " + base64Credentials,
+      Authorization: "Bearer " + jwt,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: body,
