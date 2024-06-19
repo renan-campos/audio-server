@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/renan-campos/audio-server/pkg/auth"
+	"github.com/renan-campos/audio-server/pkg/handlers"
 	"github.com/renan-campos/audio-server/pkg/storage"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
@@ -90,6 +91,9 @@ var v0 struct {
 		}
 	},
 	RootEndpoints: func(audioStorageService storage.AudioStorageService) []EchoEndpoint {
+		audioHandler := handlers.NewAudioHandler(handlers.AudioHandlerSpec{
+			Storage: audioStorageService,
+		})
 		return []EchoEndpoint{
 			{
 				Path:   "/audio",
@@ -133,6 +137,11 @@ var v0 struct {
 					// Serve the Ogg sound file as an HTTP response
 					return c.File(string(audioFilePath))
 				},
+			},
+			{
+				Path:    "/audio/:id/ogg",
+				Method:  MethodHead,
+				Handler: audioHandler.GetAudioHead,
 			},
 			{
 				Path:   "/token",

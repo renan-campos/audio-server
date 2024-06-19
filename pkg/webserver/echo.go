@@ -54,6 +54,8 @@ func (e *webServerImpl) setupRoutes(audioStorageService storage.AudioStorageServ
 				g.GET(endpoint.Path, endpoint.Handler, endpoint.Middlewares...)
 			case MethodPost:
 				g.POST(endpoint.Path, endpoint.Handler, endpoint.Middlewares...)
+			case MethodHead:
+				g.HEAD(endpoint.Path, endpoint.Handler, endpoint.Middlewares...)
 			default:
 				panic("Method not supported... yet.")
 			}

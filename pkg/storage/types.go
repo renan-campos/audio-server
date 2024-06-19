@@ -2,6 +2,7 @@ package storage
 
 import (
 	"mime/multipart"
+	"os"
 )
 
 type AudioStorageService interface {
@@ -23,3 +24,11 @@ type AudioIdList struct {
 }
 
 type AudioFilePath string
+
+func (a AudioFilePath) FileSize() (int, error) {
+	fileInfo, err := os.Stat(string(a))
+	if err != nil {
+		return 0, err
+	}
+	return int(fileInfo.Size()), nil
+}
