@@ -35,10 +35,11 @@ it to the media source object's buffer.
 
 HEAD http requests will be supported for audio endpoints. This will enable
 clients to fetch metadata about the audio file without the need to retrieve its
-content. The following metadata will be provided to the frontend:
-- chunkSize : The ideal size of chunks for streaming, in bytes. For now this
+content. The header fields will follow standard naming conventions.The
+following metadata will be provided to the frontend:
+- X-Chunk-Size : The ideal size of chunks for streaming, in bytes. For now this
   value will be arbitrarily set as 1 Mb (This is what ChatGPT recommended.)
-- fileSize: This is the total size of the file, in bytes.
+- Content-Length: This is the total size of the file, in bytes.
 
 The Range http parameter will be supported for GET calls to audio endpoints.
 This will enable clients to retreive small chunks of the audio file at a time.
