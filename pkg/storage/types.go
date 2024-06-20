@@ -32,3 +32,7 @@ func (a AudioFilePath) FileSize() (int, error) {
 	}
 	return int(fileInfo.Size()), nil
 }
+
+func (a AudioFilePath) FileStr() string {
+	return string(a)
+}

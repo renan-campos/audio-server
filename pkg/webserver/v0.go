@@ -119,24 +119,9 @@ var v0 struct {
 				},
 			},
 			{
-				Path:   "/audio/:id/ogg",
-				Method: MethodGet,
-				Handler: func(c echo.Context) error {
-					id := c.Param("id")
-					// Specify the path to your Ogg sound file
-					audioFilePath, err := audioStorageService.GetAudioFile(id)
-					if err != nil {
-						return err
-					}
-
-					// Set the appropriate headers for the HTTP response
-					c.Response().Header().Set(echo.HeaderContentType, "audio/ogg")
-					c.Response().Header().Set(echo.HeaderContentDisposition,
-						fmt.Sprintf("attachment; filename=\"%s.ogg\"", id))
-
-					// Serve the Ogg sound file as an HTTP response
-					return c.File(string(audioFilePath))
-				},
+				Path:    "/audio/:id/ogg",
+				Method:  MethodGet,
+				Handler: audioHandler.GetAudioFile,
 			},
 			{
 				Path:    "/audio/:id/ogg",
