@@ -2,3 +2,4 @@ bin/
 assets/uploads/*
 assets/default.etcd
 .envrc
+tags
