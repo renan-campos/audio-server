@@ -14,15 +14,23 @@ When the user clicks "play", a backend GET call is made to retrieve the audio
 file. The files are a 10-100 Mbs in size, and can be larger based on the
 recording's duration.
 
+At the time of this proposal, ogg is not a supported format for the Media
+Source Extensions API.
+
 ## References
 - https://developer.mozilla.org/en-US/docs/Web/HTML/Element/audio
 - https://developer.mozilla.org/en-US/docs/Web/API/Media_Source_Extensions_API
 - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Range 
 - https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/HEAD
+- https://github.com/w3c/media-source/issues/245
 
 # Decision
 
-The audio to be played will be broken up into smaller tracks to be streamed to the front end.
+The audio to be played will be broken up into smaller tracks to be streamed to
+the front end.
+
+The audio format will be changed from ogg to webm, as ogg is not easily
+supported as a streaming format.
 
 ## Frontend Enhancements
 
