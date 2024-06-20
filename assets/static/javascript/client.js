@@ -1,7 +1,7 @@
 export class BackendClient {
   constructor() {
     this.root = window.location.origin;
-    this.version = "/v0/"
+    this.version = "/v0/";
   }
 
   async ListAudio(handler) {
@@ -13,11 +13,18 @@ export class BackendClient {
   }
 
   async GetAudioOgg(id, handler) {
-    fetchAndHandleBlob(this.root + this.version + "audio/" + id + "/ogg", handler);
+    fetchAndHandleBlob(
+      this.root + this.version + "audio/" + id + "/ogg",
+      handler,
+    );
   }
 
   async CreateAudio(auth, handler) {
-    fetchAndHandleWithAuth(this.root + this.version + "admin/audio", auth, handler);
+    fetchAndHandleWithAuth(
+      this.root + this.version + "admin/audio",
+      auth,
+      handler,
+    );
   }
 
   async UploadAudioMetadata(id, auth, metadata, handler) {
@@ -32,33 +39,32 @@ export class BackendClient {
   async UploadAudio(id, auth, audioFile, handler) {
     const formData = new FormData();
     formData.append("audioFile", audioFile);
-  const base64Credentials = btoa(auth.username + ":" + auth.password);
+    const base64Credentials = btoa(auth.username + ":" + auth.password);
 
-  fetch(
-    this.root + this.version + "admin/audio/" + id + "/ogg", {
-    method: "POST",
-    headers: {
-      Authorization: "Basic " + base64Credentials,
-    },
-    body: formData,
-  })
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      return response.text(); // Change to .json() if the response is JSON
+    fetch(this.root + this.version + "admin/audio/" + id + "/ogg", {
+      method: "POST",
+      headers: {
+        Authorization: "Basic " + base64Credentials,
+      },
+      body: formData,
     })
-    .then((data) => {
-      if (typeof handler === "function") {
-        handler(data);
-      } else {
-        console.log(data);
-      }
-    })
-    .catch((error) => {
-      console.error("There was a problem with the fetch operation:", error);
-      reject(error); // Reject the Promise if there's an error
-    });
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.text(); // Change to .json() if the response is JSON
+      })
+      .then((data) => {
+        if (typeof handler === "function") {
+          handler(data);
+        } else {
+          console.log(data);
+        }
+      })
+      .catch((error) => {
+        console.error("There was a problem with the fetch operation:", error);
+        reject(error); // Reject the Promise if there's an error
+      });
   }
 }
 
@@ -105,9 +111,9 @@ function fetchAndHandleBlob(route, handler) {
 
 // Function to retrieve a cookie by name
 function getCookie(name) {
-  const cookies = document.cookie.split(';');
+  const cookies = document.cookie.split(";");
   for (let cookie of cookies) {
-    const [cookieName, cookieValue] = cookie.trim().split('=');
+    const [cookieName, cookieValue] = cookie.trim().split("=");
     if (cookieName === name) {
       return decodeURIComponent(cookieValue);
     }
@@ -116,11 +122,14 @@ function getCookie(name) {
 }
 
 function fetchAndHandleWithAuth(route, auth, body, handler) {
-  const jwt = getCookie('jwt');
+  const jwt = getCookie("jwt");
   if (!jwt) {
-    console.log('JWT token not found. Redirecting to authentication endpoint...');
+    console.log(
+      "JWT token not found. Redirecting to authentication endpoint...",
+    );
     // Token not found, redirect to authentication endpoint
-    window.location.href = '/auth?redirect=' + encodeURIComponent(window.location.href); 
+    window.location.href =
+      "/auth?redirect=" + encodeURIComponent(window.location.href);
   }
 
   fetch(route, {
