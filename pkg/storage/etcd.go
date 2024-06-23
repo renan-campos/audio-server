@@ -50,7 +50,7 @@ func (s *etcdStorageService) UploadAudio(id string, file *multipart.FileHeader) 
 	defer src.Close()
 
 	// Specify the path where you want to save the uploaded file
-	dstPath := fmt.Sprintf("%s/%s.ogg", uploadDirectory, id) // Change the path as needed
+	dstPath := fmt.Sprintf("%s/%s.webm", uploadDirectory, id) // Change the path as needed
 
 	// Create or open the destination file
 	dst, err := os.Create(dstPath)
@@ -102,7 +102,7 @@ func (s *etcdStorageService) GetAudioFile(id string) (AudioFilePath, error) {
 	if err != nil {
 		return "", fmt.Errorf("%q not found", id)
 	}
-	return AudioFilePath(fmt.Sprintf("%s/%s.ogg", uploadDirectory, id)), nil
+	return AudioFilePath(fmt.Sprintf("%s/%s.webm", uploadDirectory, id)), nil
 }
 
 func (s *etcdStorageService) newContext() context.Context {

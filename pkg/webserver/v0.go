@@ -55,7 +55,7 @@ var v0 struct {
 					},
 				},
 				{
-					Path:   "/audio/:id/ogg",
+					Path:   "/audio/:id/webm",
 					Method: MethodPost,
 					Handler: func(c echo.Context) error {
 						// Get the uploaded file from the request
@@ -70,7 +70,7 @@ var v0 struct {
 							fmt.Println(err)
 							return err
 						}
-						return c.String(http.StatusOK, fmt.Sprintf("Uploaded ogg file for %q\n", id))
+						return c.String(http.StatusOK, fmt.Sprintf("Uploaded webm file for %q\n", id))
 					},
 				},
 			},
@@ -119,12 +119,12 @@ var v0 struct {
 				},
 			},
 			{
-				Path:    "/audio/:id/ogg",
+				Path:    "/audio/:id/webm",
 				Method:  MethodGet,
 				Handler: audioHandler.GetAudioFile,
 			},
 			{
-				Path:    "/audio/:id/ogg",
+				Path:    "/audio/:id/webm",
 				Method:  MethodHead,
 				Handler: audioHandler.GetAudioHead,
 			},
@@ -151,27 +151,27 @@ var v0 struct {
 					// Read response body
 					rawJwt, err := io.ReadAll(resp.Body)
 					if err != nil {
-						return fmt.Errorf("Failed to read JWT", err)
+						return fmt.Errorf("Failed to read JWT: %v", err)
 					}
 					webToken, err := jwt.ParseSigned(string(rawJwt))
 					if err != nil {
-						return fmt.Errorf("Failed to parse JWT", err)
+						return fmt.Errorf("Failed to parse JWT: %v", err)
 					}
 					var verifiedClaims jwt.Claims
 					// Todo auth endpoint
 					resp, err = http.Get("http://auth.rcampos.net/jwks")
 					if err != nil {
-						fmt.Errorf("Http request failed:", err)
+						return fmt.Errorf("Http request failed: %v", err)
 					}
 					defer resp.Body.Close()
 
 					var jwks jose.JSONWebKeySet
 					marshalledJwks, err := io.ReadAll(resp.Body)
 					if err != nil {
-						fmt.Errorf("Failed to read GET response body")
+						return fmt.Errorf("Failed to read GET response body")
 					}
 					if err := json.Unmarshal(marshalledJwks, &jwks); err != nil {
-						fmt.Errorf("Failed to unmarshall jwks")
+						return fmt.Errorf("Failed to unmarshall jwks")
 					}
 
 					err = webToken.Claims(jwks.Keys[0], &verifiedClaims)
@@ -185,9 +185,9 @@ var v0 struct {
 						Time:   time.Now(),
 					})
 					if err != nil {
-						fmt.Errorf("Failed to validate claims:", err)
+						return fmt.Errorf("Failed to validate claims: %v", err)
 					}
-					log.Println("Claims validated sucessful.\n")
+					log.Println("Claims validated sucessful.")
 
 					/* jwt logic } */
 					_, err = c.Response().Write(rawJwt)

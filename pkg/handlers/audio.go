@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/labstack/echo/v4"
@@ -12,8 +13,9 @@ import (
 )
 
 const (
-	chunkSize  = 1024
+	chunkSize  = 1024 * 1024
 	rangeRegex = `bytes=(\d*)-(\d*)`
+	mediaType  = `audio/webm; codecs="vorbis"`
 )
 
 type AudioHandler interface {
@@ -51,6 +53,7 @@ func (h *audioHandler) GetAudioHead(c echo.Context) error {
 	}
 	response := c.Response()
 	header := response.Header()
+	header.Set(echo.HeaderContentType, mediaType)
 	header.Set("X-Chunk-Size", fmt.Sprintf("%d", chunkSize))
 	header.Set("Content-Length", fmt.Sprintf("%d", fileSize))
 	c.Response().WriteHeader(http.StatusOK)
@@ -58,11 +61,8 @@ func (h *audioHandler) GetAudioHead(c echo.Context) error {
 }
 
 func (h *audioHandler) GetAudioFile(c echo.Context) error {
-	const (
-		mediaType = "audio/ogg"
-	)
 	id := c.Param("id")
-	// Specify the path to your Ogg sound file
+	// Specify the path to your sound file
 	audioFilePath, err := h.storage.GetAudioFile(id)
 	if err != nil {
 		return err
@@ -81,8 +81,8 @@ func (h *audioHandler) GetAudioFile(c echo.Context) error {
 	header := c.Response().Header()
 	header.Set(echo.HeaderContentType, mediaType)
 	header.Set(echo.HeaderContentDisposition,
-		fmt.Sprintf("attachment; filename=\"%s.ogg\"", id))
-	header.Set("Content-Length", fmt.Sprintf("%d", fileSize))
+		fmt.Sprintf("attachment; filename=\"%s\"", filepath.Base(audioFilePath.FileStr())))
+	header.Set("Content-Length", fmt.Sprintf("%d", rangeEnd-rangeStart))
 	header.Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", rangeStart, rangeEnd, fileSize))
 
 	if rangeStart == 0 && rangeEnd == int64(fileSize) {
