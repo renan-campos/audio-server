@@ -67,6 +67,7 @@ class UI {
   }
 
   populateSessionList() {
+              const backendClient = this.backendClient;
     this.backendClient.ListAudio((data) => {
       data.Items.map((sessionId) => {
         this.backendClient.GetAudioMetadata(sessionId, (metadata) => {
@@ -74,17 +75,99 @@ class UI {
           const playButton = document.createElement("button");
           playButton.textContent = "▶️";
           playButton.className = "edit-button";
-          playButton.addEventListener("click", () => {
+          playButton.addEventListener("click", async () => {
             console.log("Play button clicked for " + sessionId);
-            this.backendClient.GetAudioOgg(sessionId, (blob) => {
-              //Create a blob URL and set it as the audio source
-              const blobURL = URL.createObjectURL(blob);
-              this.Player.type = "audio/ogg";
-              this.Player.src = blobURL;
 
-              // Play the audio
-              this.Player.play();
-            });
+            const audioData = await this.backendClient.GetAudioHeader(
+              sessionId,
+              (header) => {
+                return {
+                  chunkSize: parseInt(header.get("X-Chunk-Size")),
+                  contentType: header.get("Content-Type"),
+                  fileSize: parseInt(header.get("Content-Length")),
+                };
+              },
+            );
+
+            var mediaSource = new MediaSource();
+            var audio = document.querySelector("audio");
+            audio.src = URL.createObjectURL(mediaSource);
+            mediaSource.addEventListener(
+              "sourceopen",
+              async function () {
+                // Step 4: Add a SourceBuffer and append media segments
+                var sourceBuffer = mediaSource.addSourceBuffer(
+                  audioData.contentType,
+                );
+
+                // Function to fetch and append the next segment
+                var segmentStart = 0;
+                async function appendNextSegment() {
+                  if (segmentStart > audioData.fileSize) {
+                    console.log("All segments appended");
+                    mediaSource.endOfStream();
+                    return;
+                  }
+                  const segmentEnd = Math.min(
+                    segmentStart + audioData.chunkSize,
+                    audioData.fileSize,
+                  );
+
+                  const newBuffer = backendClient.GetAudioBuffer(
+                    sessionId,
+                    segmentStart,
+                    segmentEnd,
+                    (buffer) => {
+                      sourceBuffer.appendBuffer(buffer);
+                      segmentStart += audioData.chunkSize;
+                      return sourceBuffer;
+                    },
+                  );
+                  return newBuffer;
+                }
+
+                const firstUpdateHandler = function () {
+                  sourceBuffer.removeEventListener(
+                    "updateend",
+                    firstUpdateHandler,
+                  );
+
+                  var downloadTime = 0;
+                  var cleanupTime = sourceBuffer.buffered.end(0);
+
+                  const audioTimeHandler = function () {
+                    audio.removeEventListener("timeupdate", audioTimeHandler);
+
+                    if (audio.currentTime > downloadTime) {
+                      downloadTime = sourceBuffer.buffered.end(0);
+                      appendNextSegment();
+                    }
+                    if (audio.currentTime > cleanupTime) {
+                      sourceBuffer.remove(
+                        sourceBuffer.buffered.start(0),
+                        cleanupTime,
+                      );
+                      cleanupTime = sourceBuffer.buffered.end(0);
+                    }
+                    setTimeout(
+                      function () {
+                        audio.addEventListener("timeupdate", audioTimeHandler);
+                      },
+                      (downloadTime - audio.currentTime) * 1000,
+                    );
+                  };
+                  audio.addEventListener("timeupdate", audioTimeHandler);
+                };
+                sourceBuffer.addEventListener("updateend", firstUpdateHandler);
+
+                // Append the first segment
+                appendNextSegment();
+
+                // Start playing the audio after the first segment is appended
+                audio.play();
+              },
+              false,
+            );
           });
           // } Play Button
           // Edit button {

@@ -12,9 +12,25 @@ export class BackendClient {
     fetchAndHandle(this.root + this.version + "audio/" + id, handler);
   }
 
-  async GetAudioOgg(id, handler) {
+  async GetAudio(id, handler) {
     fetchAndHandleBlob(
-      this.root + this.version + "audio/" + id + "/ogg",
+      this.root + this.version + "audio/" + id + "/webm",
+      handler,
+    );
+  }
+
+  async GetAudioBuffer(id, start, end, handler) {
+    return fetchAndHandleBuffer(
+      this.root + this.version + "audio/" + id + "/webm",
+      start,
+      end,
+      handler,
+    );
+  }
+
+  async GetAudioHeader(id, handler) {
+    return fetchAndHandleHeader(
+      this.root + this.version + "audio/" + id + "/webm",
       handler,
     );
   }
@@ -41,7 +57,7 @@ export class BackendClient {
     formData.append("audioFile", audioFile);
     const base64Credentials = btoa(auth.username + ":" + auth.password);
 
-    fetch(this.root + this.version + "admin/audio/" + id + "/ogg", {
+    fetch(this.root + this.version + "admin/audio/" + id + "/webm", {
       method: "POST",
       headers: {
         Authorization: "Basic " + base64Credentials,
@@ -89,6 +105,26 @@ function fetchAndHandle(route, handler) {
     });
 }
 
+function fetchAndHandleHeader(route, handler) {
+  return fetch(route, { method: "HEAD" })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.headers;
+    })
+    .then((header) => {
+      if (typeof handler === "function") {
+        return handler(header);
+      } else {
+        console.log(header);
+      }
+    })
+    .catch((error) => {
+      console.error("There was a problem with the fetch operation:", error);
+    });
+}
+
 function fetchAndHandleBlob(route, handler) {
   fetch(route)
     .then((response) => {
@@ -102,6 +138,26 @@ function fetchAndHandleBlob(route, handler) {
         handler(blob);
       } else {
         console.log(blob);
+      }
+    })
+    .catch((error) => {
+      console.error("There was a problem with the fetch operation:", error);
+    });
+}
+
+function fetchAndHandleBuffer(route, start, end, handler) {
+  return fetch(route, { headers: { Range: `bytes=${start}-${end}` } })
+    .then(async (response) => {
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+      return response.arrayBuffer();
+    })
+    .then((buffer) => {
+      if (typeof handler === "function") {
+        return handler(buffer);
+      } else {
+        console.log(buffer);
       }
     })
     .catch((error) => {
